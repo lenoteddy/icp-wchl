@@ -1,1 +1,8 @@
-service : { greet : (text) -> (text) query; set_greeting : (text) -> () }
+type LoanInfo = record { debt : nat64; collateral : nat64 };
+service : {
+  borrow : (nat64) -> ();
+  deposit_collateral : (nat64) -> ();
+  get_balances : () -> (vec record { principal; LoanInfo }) query;
+  get_ckbtc_balance : () -> (nat64);
+  repay_loan : () -> ();
+}
