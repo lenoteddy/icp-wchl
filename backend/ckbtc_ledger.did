@@ -1,0 +1,3 @@
+service : {
+  account_balance : (record { account : blob }) -> (record { e8s : nat64 });
+}
