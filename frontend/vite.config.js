@@ -10,6 +10,27 @@ export default defineConfig({
   define: {
     'process.env': process.env
   },
+  build: {
+    rollupOptions: {
+      external: [],
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          ui: ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-select'],
+          three: ['three', '@react-three/fiber', '@react-three/drei'],
+          dfinity: ['@dfinity/agent', '@dfinity/auth-client', '@dfinity/candid']
+        }
+      },
+      onwarn(warning, warn) {
+        if (warning.code === 'INVALID_ANNOTATION') return;
+        warn(warning);
+      }
+    },
+    chunkSizeWarningLimit: 1000,
+    commonjsOptions: {
+      transformMixedEsModules: true
+    }
+  },
   optimizeDeps: {
     esbuildOptions: {
       define: {
