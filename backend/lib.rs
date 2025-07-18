@@ -1,10 +1,14 @@
-use candid::{CandidType, Deserialize, Principal};
+use candid::{CandidType, Deserialize, Nat, Principal};
 use ic_cdk_macros::*;
 use ic_stable_structures::{
     memory_manager::{MemoryId, MemoryManager, VirtualMemory},
     DefaultMemoryImpl, StableBTreeMap, Storable,
 };
+use serde::Serialize;
 use std::cell::RefCell;
+
+// ===== Constants ===== //
+const CKTESTBTC_CANISTER_ID: &str = "mc6ru-gyaaa-aaaar-qaaaq-cai";
 
 // ===== Type Definitions ===== //
 type Memory = VirtualMemory<DefaultMemoryImpl>;
@@ -14,6 +18,13 @@ type Memory = VirtualMemory<DefaultMemoryImpl>;
 struct LoanInfo {
     collateral: u64,
     debt: u64,
+}
+
+#[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
+pub struct Account {
+    pub owner: Principal,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subaccount: Option<Vec<u8>>, // 32-byte subaccount
 }
 
 // Implement Storable manually
@@ -42,7 +53,6 @@ thread_local! {
 }
 
 // ===== Canister Methods ===== //
-
 #[update]
 fn deposit_collateral(amount: u64) {
     let user = ic_cdk::api::msg_caller();
@@ -92,24 +102,19 @@ fn get_balances() -> Vec<(Principal, LoanInfo)> {
 }
 
 #[update]
-async fn get_ckbtc_balance() -> u64 {
-    // Simulasi: 0.5 ckBTC = 50_000_000 satoshi
-    50_000_000
+pub async fn get_cktestbtc_balance_of(account: Account) -> Result<Nat, String> {
+    let canister_id: Principal = CKTESTBTC_CANISTER_ID
+        .parse()
+        .map_err(|e| format!("Invalid principal: {}", e))?;
+
+    let result: Result<(Nat,), _> =
+        ic_cdk::api::call::call(canister_id, "icrc1_balance_of", (account,)).await;
+
+    match result {
+        Ok((balance,)) => Ok(balance),
+        Err((code, msg)) => Err(format!("Call failed with code {:?}: {}", code, msg)),
+    }
 }
 
 //Export Candid
 ic_cdk::export_candid!();
-
-// #[query]
-// async fn get_ckbtc_balance() -> u64 {
-//     let user = ic_cdk::api::msg_caller();
-//     let ckbtc_ledger_canister_id = Principal::from_text("mc6ru-gyaaa-aaaar-qaaaq-cai").unwrap();
-//     ledger::get_ckbtc_balance(ckbtc_ledger_canister_id, user).await
-// }
-
-// #[update]
-// async fn get_ckbtc_balance() -> u64 {
-//     let user = ic_cdk::api::msg_caller();
-//     let ckbtc_ledger_canister_id = Principal::from_text("mc6ru-gyaaa-aaaar-qaaaq-cai").unwrap();
-//     ledger::get_ckbtc_balance(ckbtc_ledger_canister_id, user).await
-// }
