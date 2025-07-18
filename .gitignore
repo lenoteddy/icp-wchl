@@ -1,7 +1,94 @@
+# macOS
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Environment variables
 .env
-.dfx
-.package-lock.json
-node_modules
-src
-target
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# DFX/DFINITY
+.dfx/
+**/.dfx/
+
+# Dependencies
+node_modules/
+**/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Build outputs
+dist/
+**/dist/
+build/
+**/build/
+target/
+**/target/
+deps/
+**/deps/
+
+# Rust
+Cargo.lock
+**/Cargo.lock
+
+# Frontend specific
+# Build artifacts
+frontend/dist/
+frontend/build/
+frontend/.vite/
+**/.vite/
+*.tsbuildinfo
+**/*.tsbuildinfo
+
+# Cache files
+.eslintcache
+**/.eslintcache
+.tailwindcache
+**/.tailwindcache
+
+# Logs
+*.log
+logs/
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# nyc test coverage
+.nyc_output
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
