@@ -27,6 +27,50 @@ pub struct Account {
     pub subaccount: Option<Vec<u8>>, // 32-byte subaccount
 }
 
+#[derive(Debug, Serialize, Deserialize, CandidType)]
+struct TransferArg {
+    from_subaccount: Option<[u8; 32]>,
+    to: Account,
+    amount: Nat,
+    fee: Option<Nat>,
+    memo: Option<Vec<u8>>,
+    created_at_time: Option<u64>,
+}
+
+#[derive(CandidType, Deserialize, Debug)]
+pub enum TransferResult {
+    #[serde(rename = "Ok")]
+    Ok(Nat),
+
+    #[serde(rename = "Err")]
+    Err(TransferError),
+}
+
+#[derive(CandidType, Deserialize, Debug)]
+pub enum TransferError {
+    GenericError {
+        message: String,
+        error_code: candid::Nat,
+    },
+    TemporarilyUnavailable,
+    BadBurn {
+        min_burn_amount: candid::Nat,
+    },
+    Duplicate {
+        duplicate_of: candid::Nat,
+    },
+    BadFee {
+        expected_fee: candid::Nat,
+    },
+    CreatedInFuture {
+        ledger_time: u64,
+    },
+    TooOld,
+    InsufficientFunds {
+        balance: candid::Nat,
+    },
+}
+
 // Implement Storable manually
 impl Storable for LoanInfo {
     const BOUND: ic_stable_structures::storable::Bound =
@@ -113,6 +157,43 @@ pub async fn get_cktestbtc_balance_of(account: Account) -> Result<Nat, String> {
     match result {
         Ok((balance,)) => Ok(balance),
         Err((code, msg)) => Err(format!("Call failed with code {:?}: {}", code, msg)),
+    }
+}
+
+#[update]
+async fn withdraw(to: Principal, amount: Nat) -> Result<Nat, String> {
+    let fee: Result<(Nat,), _> = ic_cdk::call::<_, (Nat,)>(
+        Principal::from_text("mc6ru-gyaaa-aaaar-qaaaq-cai").unwrap(),
+        "icrc1_fee",
+        (),
+    )
+    .await;
+
+    let to_account = Account {
+        owner: to,
+        subaccount: None,
+    };
+
+    let transfer_args = TransferArg {
+        from_subaccount: None,
+        to: to_account,
+        amount,
+        fee: fee.map(|(f,)| Some(f)).unwrap_or(None),
+        memo: None,
+        created_at_time: None,
+    };
+
+    let (res,): (TransferResult,) = ic_cdk::call(
+        Principal::from_text("mc6ru-gyaaa-aaaar-qaaaq-cai").unwrap(),
+        "icrc1_transfer",
+        (transfer_args,),
+    )
+    .await
+    .map_err(|e| format!("Call failed: {:?}", e))?;
+
+    match res {
+        TransferResult::Ok(block_index) => Ok(block_index),
+        TransferResult::Err(err) => Err(format!("Transfer error: {:?}", err)),
     }
 }
 
