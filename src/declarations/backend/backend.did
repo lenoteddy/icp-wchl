@@ -6,8 +6,6 @@ service : {
   deposit_collateral : (nat64) -> ();
   get_balances : () -> (vec record { principal; LoanInfo }) query;
   get_cktestbtc_balance_of : (Account) -> (Result);
-  liquidate : (principal) -> ();
   repay_loan : () -> ();
-  set_price : (nat64) -> ();
   withdraw : (principal, nat) -> (Result);
 }
