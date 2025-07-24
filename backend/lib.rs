@@ -1,31 +1,24 @@
-mod deposit;
 mod borrow;
-mod repay;
+mod deposit;
 mod oracle;
+mod repay;
 mod state;
-
-use state::*;
-
-
-use ic_cdk_macros::export_candid;
 use candid::{CandidType, Deserialize, Nat, Principal};
+use ic_cdk_macros::export_candid;
 use ic_cdk_macros::*;
 use ic_stable_structures::{
     memory_manager::{MemoryId, MemoryManager, VirtualMemory},
     DefaultMemoryImpl, StableBTreeMap, Storable,
 };
 use serde::Serialize;
+use state::*;
 use std::cell::RefCell;
 
 //akses local
-use crate::oracle::get_token_price;
-
+// use crate::oracle::get_token_price;
 
 // akses global
 //pub use crate::oracle::{get_token_price, set_token_price};
-
-
-
 
 // ===== Constants ===== //
 const CKTESTBTC_CANISTER_ID: &str = "mc6ru-gyaaa-aaaar-qaaaq-cai";
@@ -135,13 +128,11 @@ fn borrow(amount: u64) {
     LOANS.with(|loans| {
         let mut map = loans.borrow_mut();
         let mut entry = map.get(&user).unwrap_or_default();
-
         let max_borrow = entry.collateral / 2;
         assert!(
             amount <= max_borrow - entry.debt,
             "Borrow amount exceeds limit"
         );
-
         entry.debt += amount;
         map.insert(user, entry);
     });
@@ -217,27 +208,21 @@ async fn withdraw(to: Principal, amount: Nat) -> Result<Nat, String> {
     }
 }
 
-
 #[update]
 fn set_price(price: u64) {
     crate::oracle::set_token_price(price);
-    
 }
 
 #[update]
 fn liquidate(principal: Principal) {
-    let price = get_token_price();
-
+    // let price = get_token_price();
     COLLATERALS.with(|coll| {
         BORROWS.with(|debt| {
             let mut coll = coll.borrow_mut();
             let mut debt = debt.borrow_mut();
-
             let user_coll = coll.get(&principal).copied().unwrap_or(0);
             let user_debt = debt.get(&principal).copied().unwrap_or(0);
-
             let max_borrow = user_coll * 60 / 100;
-
             if user_debt > max_borrow {
                 coll.remove(&principal);
                 debt.remove(&principal);
@@ -246,7 +231,6 @@ fn liquidate(principal: Principal) {
         });
     });
 }
-
 
 //Export Candid
 export_candid!();
