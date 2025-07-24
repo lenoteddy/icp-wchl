@@ -139,13 +139,13 @@ fn borrow(amount: u64) {
 }
 
 #[update]
-fn repay_loan() {
+fn repay_loan(amount: u64) {
     let user = ic_cdk::api::msg_caller();
     LOANS.with(|loans| {
         let mut map = loans.borrow_mut();
         if let Some(mut entry) = map.get(&user) {
-            entry.debt = 0;
-            entry.collateral = 0;
+            assert!(entry.debt >= amount, "Repay amount exceeds current debt");
+            entry.debt -= amount;
             map.insert(user, entry);
         }
     });

@@ -7,7 +7,7 @@ service : {
   get_balances : () -> (vec record { principal; LoanInfo }) query;
   get_cktestbtc_balance_of : (Account) -> (Result);
   liquidate : (principal) -> ();
-  repay_loan : () -> ();
+  repay_loan : (nat64) -> ();
   set_price : (nat64) -> ();
   withdraw : (principal, nat) -> (Result);
 }
