@@ -1,0 +1,4 @@
+service : {
+  get_token_price : () -> (nat64) query;
+  update_token_price : () -> ();
+}
