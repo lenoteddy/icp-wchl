@@ -373,16 +373,16 @@ export default function DashboardPage() {
 	const { isAuthenticated, principal, walletType } = useAuth();
 	const [activeSection, setActiveSection] = useState("dashboard");
 
-	// if (!isAuthenticated) {
-	// 	return (
-	// 		<div className="min-h-screen flex items-center justify-center bg-gray-50">
-	// 			<div className="text-center">
-	// 				<h1 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h1>
-	// 				<p className="text-gray-600">Please connect your wallet to access the dashboard.</p>
-	// 			</div>
-	// 		</div>
-	// 	);
-	// }
+	if (!isAuthenticated) {
+		return (
+			<div className="min-h-screen flex items-center justify-center bg-gray-50">
+				<div className="text-center">
+					<h1 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h1>
+					<p className="text-gray-600">Please connect your wallet to access the dashboard.</p>
+				</div>
+			</div>
+		);
+	}
 
 	const renderContent = () => {
 		switch (activeSection) {
