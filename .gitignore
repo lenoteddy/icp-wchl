@@ -36,6 +36,7 @@ target/
 **/target/
 deps/
 **/deps/
+src/declarations/backend/
 
 # Rust
 Cargo.lock
