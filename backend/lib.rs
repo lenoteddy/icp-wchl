@@ -3,6 +3,8 @@ mod deposit;
 mod oracle;
 mod repay;
 mod state;
+
+use crate::oracle::get_token_price;
 use candid::{CandidType, Deserialize, Nat, Principal};
 use ic_cdk_macros::export_candid;
 use ic_cdk_macros::*;
@@ -14,11 +16,11 @@ use serde::Serialize;
 use state::*;
 use std::cell::RefCell;
 
-//akses local
+// akses local
 // use crate::oracle::get_token_price;
 
 // akses global
-//pub use crate::oracle::{get_token_price, set_token_price};
+// pub use crate::oracle::{get_token_price, set_token_price};
 
 // ===== Constants ===== //
 const CKTESTBTC_CANISTER_ID: &str = "mc6ru-gyaaa-aaaar-qaaaq-cai";
@@ -213,9 +215,14 @@ fn set_price(price: u64) {
     crate::oracle::set_token_price(price);
 }
 
+#[query]
+fn get_price() -> u64 {
+    get_token_price()
+}
+
 #[update]
 fn liquidate(principal: Principal) {
-    // let price = get_token_price();
+    let price = get_price();
     COLLATERALS.with(|coll| {
         BORROWS.with(|debt| {
             let mut coll = coll.borrow_mut();
