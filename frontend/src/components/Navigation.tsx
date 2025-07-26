@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, TrendingDown, TrendingUp, Zap, History, LogOut, User, Menu, X } from "lucide-react";
+import { LayoutDashboard, Landmark, History, LogOut, User, Menu, X } from "lucide-react";
 import Logo from "@/images/logo.webp";
 
 interface NavigationProps {
@@ -28,12 +28,18 @@ export default function Navigation({ activeSection, onSectionChange }: Navigatio
 		window.location.href = "/onboarding";
 	};
 
+	// const navigationItems = [
+	// 	{ id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+	// 	{ id: "borrow", label: "Borrow", icon: TrendingDown },
+	// 	{ id: "lend", label: "Lend", icon: TrendingUp },
+	// 	{ id: "liquidate", label: "Liquidate", icon: Zap },
+	// 	{ id: "transactions", label: "Transactions", icon: History },
+	// ];
+
 	const navigationItems = [
 		{ id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-		{ id: "borrow", label: "Borrow", icon: TrendingDown },
-		{ id: "lend", label: "Lend", icon: TrendingUp },
-		{ id: "liquidate", label: "Liquidate", icon: Zap },
-		{ id: "transactions", label: "Transactions", icon: History },
+		{ id: "transaction", label: "Transaction", icon: Landmark },
+		{ id: "history", label: "History", icon: History },
 	];
 
 	return (
