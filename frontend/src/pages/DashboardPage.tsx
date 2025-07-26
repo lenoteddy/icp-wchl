@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import Navigation from "@/components/Navigation";
 import OverviewCards from "@/components/OverviewCards";
@@ -7,6 +7,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, Zap, History, Bitcoin, DollarSign, AlertCircle, CheckCircle, Clock } from "lucide-react";
+import { HttpAgent } from "@dfinity/agent";
+import { Actor, ActorSubclass } from "@dfinity/agent";
+import { idlFactory as backend_idl, canisterId as backend_id } from "../../../src/declarations/backend";
+
+type BackendActor = ActorSubclass<any>;
 
 /**
  * Borrow section component - allows users to create loans using BTC as collateral.
@@ -212,9 +217,113 @@ import { TrendingUp, TrendingDown, Zap, History, Bitcoin, DollarSign, AlertCircl
  * Transaction section - displays recent user transactions with status and details.
  */
 function TransactionSection() {
+	interface LtvInfo {
+		numerator: number;
+		denominator: number;
+	}
+	interface LoanInfo {
+		collateral: number;
+		debt: number;
+	}
+
+	const agent = new HttpAgent({
+		host: "http://localhost:4943", // dfx default local host
+	});
+	const backend: BackendActor = Actor.createActor(backend_idl, {
+		agent,
+		canisterId: backend_id,
+	});
+
+	const [ltvInfo, setLtvInfo] = useState<LtvInfo | null>(null);
+	const [loanInfo, setLoanInfo] = useState<LoanInfo | null>(null);
+	const [depositAmount, setDepositAmount] = useState<number>(0);
+	const [withdrawAmount, setWithdrawAmount] = useState<number>(0);
+	const [borrowAmount, setBorrowAmount] = useState<number>(0);
+	const [repayAmount, setRepayAmount] = useState<number>(0);
+
+	const getBalance = async () => {
+		const resultBalance = await backend.get_balances();
+		setLoanInfo(resultBalance[0][1]);
+	};
+
+	const handleDeposit = async () => {
+		try {
+			await agent.fetchRootKey(); // Optionally fetch root key if local
+			await backend.deposit(depositAmount);
+			setDepositAmount(0);
+			getBalance();
+		} catch (error) {
+			alert("Deposit failed: " + error);
+		}
+	};
+
+	const handleWithdraw = async () => {
+		try {
+			await agent.fetchRootKey(); // Optionally fetch root key if local
+			await backend.withdraw(withdrawAmount);
+			setWithdrawAmount(0);
+			getBalance();
+		} catch (error) {
+			alert("Withdraw failed: " + error);
+		}
+	};
+
+	const handleBorrow = async () => {
+		try {
+			await agent.fetchRootKey(); // Optionally fetch root key if local
+			await backend.borrow(borrowAmount);
+			setBorrowAmount(0);
+			getBalance();
+		} catch (error) {
+			alert("Borrow failed: " + error);
+		}
+	};
+
+	const handleRepay = async () => {
+		try {
+			await agent.fetchRootKey(); // Optionally fetch root key if local
+			await backend.repay(repayAmount);
+			setRepayAmount(0);
+			getBalance();
+		} catch (error) {
+			alert("Repay failed: " + error);
+		}
+	};
+
+	useEffect(() => {
+		const load = async () => {
+			await agent.fetchRootKey(); // Optionally fetch root key if local
+			const resultLTVInfo = await backend.get_ltv();
+			setLtvInfo(resultLTVInfo);
+			getBalance();
+		};
+		load();
+	}, []);
+
 	return (
 		<div className="space-y-6">
 			<h2 className="text-2xl font-bold text-gray-900">Transaction</h2>
+			<Card>
+				<CardHeader>
+					<CardTitle>Information</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+						<div>
+							<div className="text-2xl font-bold">LTV: {(Number(ltvInfo?.numerator) / Number(ltvInfo?.denominator)) * 100}%</div>
+							<p className="text-sm">*LTV means you can only loan {(Number(ltvInfo?.numerator) / Number(ltvInfo?.denominator)) * 100}% of your collateral value</p>
+						</div>
+						<div>
+							<div className="text-2xl font-bold">Collateral value: ${loanInfo?.collateral}</div>
+							<p className="text-sm">*Current worth of collateral in usd</p>
+						</div>
+						<div>
+							<div className="text-2xl font-bold">Debt amount: ${loanInfo?.debt}</div>
+							<p className="text-sm">*Current outstanding debt in usd</p>
+						</div>
+					</div>
+				</CardContent>
+			</Card>
 			<div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
 				<Card>
 					<CardHeader>
@@ -225,11 +334,19 @@ function TransactionSection() {
 							<label className="block text-sm font-medium text-gray-700 mb-2">Deposit amount</label>
 							<div className="flex items-center space-x-2">
 								<Bitcoin className="w-5 h-5 text-orange-500" />
-								<input type="number" placeholder="0.00" className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+								<input
+									type="number"
+									placeholder="0.00"
+									className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+									value={depositAmount}
+									onChange={(e) => setDepositAmount(Number(e.target.value))}
+								/>
 								<span className="text-sm text-gray-500">BTC</span>
 							</div>
 						</div>
-						<Button className="cursor-pointer w-full bg-green-600 hover:bg-green-700">Deposit $BTC</Button>
+						<Button className="cursor-pointer w-full bg-green-600 hover:bg-green-700" onClick={handleDeposit}>
+							Deposit $BTC
+						</Button>
 					</CardContent>
 				</Card>
 				<Card>
@@ -241,11 +358,19 @@ function TransactionSection() {
 							<label className="block text-sm font-medium text-gray-700 mb-2">Withdraw amount</label>
 							<div className="flex items-center space-x-2">
 								<Bitcoin className="w-5 h-5 text-orange-500" />
-								<input type="number" placeholder="0.00" className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+								<input
+									type="number"
+									placeholder="0.00"
+									className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+									value={withdrawAmount}
+									onChange={(e) => setWithdrawAmount(Number(e.target.value))}
+								/>
 								<span className="text-sm text-gray-500">BTC</span>
 							</div>
 						</div>
-						<Button className="cursor-pointer w-full bg-yellow-500 hover:bg-yellow-600">Withdraw $BTC</Button>
+						<Button className="cursor-pointer w-full bg-yellow-500 hover:bg-yellow-600" onClick={handleWithdraw}>
+							Withdraw $BTC
+						</Button>
 					</CardContent>
 				</Card>
 				<Card>
@@ -257,11 +382,19 @@ function TransactionSection() {
 							<label className="block text-sm font-medium text-gray-700 mb-2">Borrow amount</label>
 							<div className="flex items-center space-x-2">
 								<DollarSign className="w-5 h-5 text-green-500" />
-								<input type="number" placeholder="0.00" className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+								<input
+									type="number"
+									placeholder="0.00"
+									className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+									value={borrowAmount}
+									onChange={(e) => setBorrowAmount(Number(e.target.value))}
+								/>
 								<span className="text-sm text-gray-500">USDC</span>
 							</div>
 						</div>
-						<Button className="cursor-pointer w-full bg-blue-600 hover:bg-blue-700">Borrow $USDC</Button>
+						<Button className="cursor-pointer w-full bg-blue-600 hover:bg-blue-700" onClick={handleBorrow}>
+							Borrow $USDC
+						</Button>
 					</CardContent>
 				</Card>
 				<Card>
@@ -273,11 +406,19 @@ function TransactionSection() {
 							<label className="block text-sm font-medium text-gray-700 mb-2">Repay amount</label>
 							<div className="flex items-center space-x-2">
 								<DollarSign className="w-5 h-5 text-green-500" />
-								<input type="number" placeholder="0.00" className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+								<input
+									type="number"
+									placeholder="0.00"
+									className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+									value={repayAmount}
+									onChange={(e) => setRepayAmount(Number(e.target.value))}
+								/>
 								<span className="text-sm text-gray-500">USDC</span>
 							</div>
 						</div>
-						<Button className="cursor-pointer w-full bg-red-600 hover:bg-red-700">Repay $USDC</Button>
+						<Button className="cursor-pointer w-full bg-red-600 hover:bg-red-700" onClick={handleRepay}>
+							Repay $USDC
+						</Button>
 					</CardContent>
 				</Card>
 			</div>
@@ -373,16 +514,16 @@ export default function DashboardPage() {
 	const { isAuthenticated, principal, walletType } = useAuth();
 	const [activeSection, setActiveSection] = useState("dashboard");
 
-	if (!isAuthenticated) {
-		return (
-			<div className="min-h-screen flex items-center justify-center bg-gray-50">
-				<div className="text-center">
-					<h1 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h1>
-					<p className="text-gray-600">Please connect your wallet to access the dashboard.</p>
-				</div>
-			</div>
-		);
-	}
+	// if (!isAuthenticated) {
+	// 	return (
+	// 		<div className="min-h-screen flex items-center justify-center bg-gray-50">
+	// 			<div className="text-center">
+	// 				<h1 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h1>
+	// 				<p className="text-gray-600">Please connect your wallet to access the dashboard.</p>
+	// 			</div>
+	// 		</div>
+	// 	);
+	// }
 
 	const renderContent = () => {
 		switch (activeSection) {
