@@ -1,10 +1,7 @@
-mod borrow;
-mod deposit;
-mod oracle;
-mod repay;
-mod state;
+// mod oracle;
+// mod state;
 
-use crate::oracle::get_token_price;
+// use crate::oracle::get_token_price;
 use candid::{CandidType, Deserialize, Nat, Principal};
 use ic_cdk_macros::export_candid;
 use ic_cdk_macros::*;
@@ -13,7 +10,7 @@ use ic_stable_structures::{
     DefaultMemoryImpl, StableBTreeMap, Storable,
 };
 use serde::Serialize;
-use state::*;
+// use state::*;
 use std::cell::RefCell;
 
 // akses local
@@ -23,7 +20,7 @@ use std::cell::RefCell;
 // pub use crate::oracle::{get_token_price, set_token_price};
 
 // ===== Constants ===== //
-const CKTESTBTC_CANISTER_ID: &str = "mc6ru-gyaaa-aaaar-qaaaq-cai";
+// const CKTESTBTC_CANISTER_ID: &str = "mc6ru-gyaaa-aaaar-qaaaq-cai";
 
 // ===== Type Definitions ===== //
 type Memory = VirtualMemory<DefaultMemoryImpl>;
@@ -33,6 +30,12 @@ type Memory = VirtualMemory<DefaultMemoryImpl>;
 struct LoanInfo {
     collateral: u64,
     debt: u64,
+}
+
+#[derive(CandidType, Deserialize, Default, Clone)]
+struct LTVInfo {
+    numerator: u64,
+    denominator: u64,
 }
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Debug)]
@@ -113,7 +116,7 @@ thread_local! {
 
 // ===== Canister Methods ===== //
 #[update]
-fn deposit_collateral(amount: u64) {
+fn deposit(amount: u64) {
     let user = ic_cdk::api::msg_caller();
     LOANS.with(|loans| {
         let mut map = loans.borrow_mut();
@@ -121,16 +124,37 @@ fn deposit_collateral(amount: u64) {
         entry.collateral += amount;
         map.insert(user, entry);
     });
-    ic_cdk::println!("User {:?} deposited {} collateral", user, amount);
+}
+
+#[update]
+fn withdraw(amount: u64) {
+    let user = ic_cdk::api::msg_caller();
+    let ltv = get_ltv();
+    LOANS.with(|loans| {
+        let mut map = loans.borrow_mut();
+        let mut entry = map.get(&user).unwrap_or_default();
+        assert!(
+            entry.collateral >= amount,
+            "Insufficient collateral to withdraw"
+        );
+        let max_borrow = (entry.collateral - amount) * ltv.numerator / ltv.denominator;
+        assert!(
+            entry.debt <= max_borrow,
+            "Cannot withdraw while having debt more than 50% of collateral"
+        );
+        entry.collateral -= amount;
+        map.insert(user, entry);
+    });
 }
 
 #[update]
 fn borrow(amount: u64) {
     let user = ic_cdk::api::msg_caller();
+    let ltv = get_ltv();
     LOANS.with(|loans| {
         let mut map = loans.borrow_mut();
         let mut entry = map.get(&user).unwrap_or_default();
-        let max_borrow = entry.collateral / 2;
+        let max_borrow = entry.collateral * ltv.numerator / ltv.denominator;
         assert!(
             amount <= max_borrow - entry.debt,
             "Borrow amount exceeds limit"
@@ -141,7 +165,7 @@ fn borrow(amount: u64) {
 }
 
 #[update]
-fn repay_loan(amount: u64) {
+fn repay(amount: u64) {
     let user = ic_cdk::api::msg_caller();
     LOANS.with(|loans| {
         let mut map = loans.borrow_mut();
@@ -158,6 +182,17 @@ fn get_balances() -> Vec<(Principal, LoanInfo)> {
     LOANS.with(|loans| loans.borrow().iter().collect())
 }
 
+#[query]
+fn get_ltv() -> LTVInfo {
+    // 50% LTV
+    return LTVInfo {
+        numerator: 50,
+        denominator: 100,
+    };
+}
+
+/*
+// Upcoming CKTESTBTC Functions
 #[update]
 pub async fn get_cktestbtc_balance_of(account: Account) -> Result<Nat, String> {
     let canister_id: Principal = CKTESTBTC_CANISTER_ID
@@ -174,7 +209,7 @@ pub async fn get_cktestbtc_balance_of(account: Account) -> Result<Nat, String> {
 }
 
 #[update]
-async fn withdraw(to: Principal, amount: Nat) -> Result<Nat, String> {
+async fn withdraw_cktestbtc(to: Principal, amount: Nat) -> Result<Nat, String> {
     let fee: Result<(Nat,), _> = ic_cdk::call::<_, (Nat,)>(
         Principal::from_text("mc6ru-gyaaa-aaaar-qaaaq-cai").unwrap(),
         "icrc1_fee",
@@ -238,6 +273,7 @@ fn liquidate(principal: Principal) {
         });
     });
 }
+*/
 
 //Export Candid
 export_candid!();

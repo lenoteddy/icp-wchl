@@ -1,15 +1,10 @@
-type Account = record { owner : principal; subaccount : opt blob };
+type LTVInfo = record { numerator : nat64; denominator : nat64 };
 type LoanInfo = record { debt : nat64; collateral : nat64 };
-type Result = variant { Ok : nat; Err : text };
 service : {
   borrow : (nat64) -> ();
-  deposit_collateral : (nat64) -> ();
+  deposit : (nat64) -> ();
   get_balances : () -> (vec record { principal; LoanInfo }) query;
-  get_cktestbtc_balance_of : (Account) -> (Result);
-  get_price : () -> (nat64);
-  liquidate : (principal) -> ();
-  repay_loan : (nat64) -> ();
-  set_price : (nat64) -> ();
-  show_price : () -> (nat64) query;
-  withdraw : (principal, nat) -> (Result);
+  get_ltv : () -> (LTVInfo) query;
+  repay : (nat64) -> ();
+  withdraw : (nat64) -> ();
 }
