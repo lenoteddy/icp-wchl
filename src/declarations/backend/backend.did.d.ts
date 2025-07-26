@@ -17,6 +17,7 @@ export interface _SERVICE {
   'liquidate' : ActorMethod<[Principal], undefined>,
   'repay_loan' : ActorMethod<[], undefined>,
   'set_price' : ActorMethod<[bigint], undefined>,
+  'repay_loan' : ActorMethod<[], undefined>,
   'withdraw' : ActorMethod<[Principal, bigint], Result>,
 }
 export declare const idlFactory: IDL.InterfaceFactory;
